@@ -1,9 +1,35 @@
+"""PlayStation Store receipt email parser.
+
+This module parses HTML emails from PlayStation Store receipts and extracts
+structured purchase data including order number, date, items, and total price.
+"""
+
 from bs4 import BeautifulSoup
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Any
 import re
 
-def parse(body: str) -> Optional[Dict]:
-    """Parse PlayStation Store email HTML into structured data."""
+
+def parse(body: str) -> Optional[Dict[str, Any]]:
+    """Parse PlayStation Store email HTML into structured purchase data.
+    
+    Extracts order number, purchase date, item details, and total price from
+    the HTML body of a PlayStation Store receipt email.
+    
+    Args:
+        body: HTML email body as a string.
+        
+    Returns:
+        Dictionary containing:
+            - order_number: Unique order identifier
+            - date: Purchase date (format: dd/mm/yyyy)
+            - items: List of dicts with 'name' and 'price' keys
+            - total: Total purchase amount in EUR
+        Returns None if parsing fails or required fields are missing.
+        
+    Note:
+        This parser is designed for PlayStation Store emails in Spanish.
+        It may need updates if the email format changes.
+    """
     if not body:
         return None
 

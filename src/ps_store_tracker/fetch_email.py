@@ -1,21 +1,50 @@
+"""Gmail email fetching and parsing utilities.
+
+This module handles connection to Gmail via IMAP and retrieval of PlayStation
+Store receipt emails with proper content decoding.
+"""
+
 import imaplib
 import email
 from email.header import decode_header
-from typing import List
-
+from email.message import Message
+from typing import List, Optional
 import base64
 
 IMAP_SERVER = "imap.gmail.com"
 
-def connect_gmail(user: str, app_password: str):
-    """Connect to Gmail via IMAP."""
+
+def connect_gmail(user: str, app_password: str) -> imaplib.IMAP4_SSL:
+    """Connect to Gmail via IMAP with SSL.
+    
+    Args:
+        user: Gmail email address.
+        app_password: Gmail app password (from https://myaccount.google.com/apppasswords).
+        
+    Returns:
+        IMAP4_SSL connection object.
+        
+    Raises:
+        imaplib.IMAP4.error: If login fails.
+    """
     imap_conn = imaplib.IMAP4_SSL(IMAP_SERVER)
     imap_conn.login(user, app_password)
     print("Email client successfully authenticated!")
     return imap_conn
 
-def fetch_emails(imap_conn, label: str = '"[Gmail]/All Mail"', limit: int = None):
-    """Fetch emails from a given label/folder, optionally limited to the latest `limit` messages."""
+
+def fetch_emails(imap_conn: imaplib.IMAP4_SSL, label: str = '"[Gmail]/All Mail"', 
+                 limit: Optional[int] = None) -> List[Message]:
+    """Fetch PlayStation Store receipt emails from Gmail.
+    
+    Args:
+        imap_conn: IMAP4_SSL connection object.
+        label: Gmail label/folder to search. Default is all mail.
+        limit: Maximum number of messages to fetch. None means all.
+        
+    Returns:
+        List of email.message.Message objects.
+    """
     status, _ = imap_conn.select(label)
     if status != "OK":
         raise Exception(f"Failed to select mailbox {label}")
@@ -44,8 +73,18 @@ def fetch_emails(imap_conn, label: str = '"[Gmail]/All Mail"', limit: int = None
     print(f"Fetched {len(email_list)} purchase receipts.")
     return email_list
 
-def get_email_body(msg) -> str:
-    """Return the HTML or plain text content of an email, properly decoded."""
+
+def get_email_body(msg: Message) -> Optional[str]:
+    """Extract and decode HTML or plain text content from an email.
+    
+    Handles multipart emails, character encoding, and base64 decoding.
+    
+    Args:
+        msg: email.message.Message object.
+        
+    Returns:
+        HTML content if available, otherwise plain text. None if no text found.
+    """
     html = None
     plain = None
 

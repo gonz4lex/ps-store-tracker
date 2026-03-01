@@ -1,21 +1,74 @@
+"""Spending analytics for PlayStation Store purchases.
+
+This module provides functions to analyze purchase data including monthly/yearly
+spending, averages, and cumulative trends.
+"""
+
+from typing import Tuple
 import pandas as pd
 
-def monthly_spending(df):
+
+def monthly_spending(df: pd.DataFrame) -> pd.Series:
+    """Calculate total spending per month.
+    
+    Args:
+        df: DataFrame with 'date' and 'price' columns.
+        
+    Returns:
+        Series with month periods as index and total spending as values.
+    """
     df['date'] = pd.to_datetime(df['date'], dayfirst=True, errors='coerce')
     return df.groupby(df['date'].dt.to_period('M'))['price'].sum()
 
-def yearly_spending(df):
+
+def yearly_spending(df: pd.DataFrame) -> pd.Series:
+    """Calculate total spending per year.
+    
+    Args:
+        df: DataFrame with 'date' and 'price' columns.
+        
+    Returns:
+        Series with years as index and total spending as values.
+    """
     df['date'] = pd.to_datetime(df['date'], dayfirst=True, errors='coerce')
     return df.groupby(df['date'].dt.year)['price'].sum()
 
-def average_spend(df):
+
+def average_spend(df: pd.DataFrame) -> float:
+    """Calculate average spending per purchase.
+    
+    Args:
+        df: DataFrame with 'price' column.
+        
+    Returns:
+        Average price per transaction.
+    """
     return df['price'].mean()
 
-def most_expensive_games(df, top_n=5):
+
+def most_expensive_games(df: pd.DataFrame, top_n: int = 5) -> pd.DataFrame:
+    """Get the most expensive items/games purchased.
+    
+    Args:
+        df: DataFrame with 'price' column.
+        top_n: Number of top items to return. Default is 5.
+        
+    Returns:
+        DataFrame sorted by price (descending) with top_n rows.
+    """
     return df.sort_values(by='price', ascending=False).head(top_n)
 
+
 def cumulative_spending(df: pd.DataFrame, rolling_window: int = 3) -> pd.DataFrame:
-    """Return cumulative spending with optional rolling smoothing."""
+    """Calculate cumulative spending with optional rolling average smoothing.
+    
+    Args:
+        df: DataFrame with 'date' and 'price' columns.
+        rolling_window: Window size for rolling average smoothing. Default is 3.
+        
+    Returns:
+        DataFrame with added 'cumulative' and 'cumulative_smooth' columns.
+    """
     df['date'] = pd.to_datetime(df['date'], dayfirst=True, errors='coerce')
     df['price'] = pd.to_numeric(df['price'], errors='coerce')
     df = df.dropna(subset=['date', 'price'])
@@ -24,8 +77,16 @@ def cumulative_spending(df: pd.DataFrame, rolling_window: int = 3) -> pd.DataFra
     df['cumulative_smooth'] = df['cumulative'].rolling(rolling_window, min_periods=1).mean()
     return df
 
-def compute_kpis(df: pd.DataFrame):
-    """Return average per purchase, monthly spend, yearly spend."""
+
+def compute_kpis(df: pd.DataFrame) -> Tuple[float, float, float]:
+    """Compute key performance indicators for spending analysis.
+    
+    Args:
+        df: DataFrame with 'date' and 'price' columns.
+        
+    Returns:
+        Tuple of (avg_per_purchase, avg_monthly, avg_yearly).
+    """
     df['date'] = pd.to_datetime(df['date'], dayfirst=True, errors='coerce')
     df = df.dropna(subset=['date', 'price'])
     total_spent = df['price'].sum()

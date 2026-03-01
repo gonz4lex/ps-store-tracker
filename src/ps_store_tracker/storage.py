@@ -1,12 +1,25 @@
+"""Database storage for PlayStation Store purchases.
+
+This module manages SQLite database operations for storing and retrieving
+purchase data, including orders and individual items.
+"""
+
 import sqlite3
 from pathlib import Path
-from typing import Dict
+from typing import Dict, Any
 
 import pandas as pd
 
 DB_PATH = Path(__file__).parent.parent.parent / "data" / "purchases.db"
 
-def init_db():
+
+def init_db() -> None:
+    """Initialize the SQLite database with required tables.
+    
+    Creates two tables if they don't exist:
+    - purchases: Order metadata (order_number, date, total, payment_method)
+    - items: Individual items per order (linked via order_number)
+    """
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     c.execute("""
@@ -30,7 +43,17 @@ def init_db():
     conn.commit()
     conn.close()
 
-def store_purchase(purchase: Dict):
+
+def store_purchase(purchase: Dict[str, Any]) -> None:
+    """Store a purchase and its items in the database.
+    
+    Args:
+        purchase: Dictionary with keys:
+            - order_number: Unique order identifier
+            - date: Purchase date
+            - total: Total purchase amount
+            - items: List of dicts with 'name' and 'price'
+    """
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     
@@ -50,8 +73,14 @@ def store_purchase(purchase: Dict):
     conn.commit()
     conn.close()
 
+
 def load_purchases() -> pd.DataFrame:
-    """Load all purchases from the DB into a pandas DataFrame."""
+    """Load all purchases from the database into a pandas DataFrame.
+    
+    Returns:
+        DataFrame with columns: order_number, date, price, payment_method,
+        item_name, item_price. Empty DataFrame if no data exists.
+    """
     query = """
     SELECT 
         p.order_number,

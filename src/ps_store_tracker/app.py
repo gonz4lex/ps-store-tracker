@@ -34,6 +34,21 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
+st.markdown("""
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
+
+html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
+
+/* Hide hamburger menu and footer */
+#MainMenu {visibility: hidden;}
+footer {visibility: hidden;}
+
+/* Make sidebar feel cleaner */
+section[data-testid="stSidebar"] { background-color: #0d1526; }
+</style>
+""", unsafe_allow_html=True)
+
 # Check if running in demo mode
 DEMO_MODE = os.getenv("DEMO", "false").lower() == "true"
 

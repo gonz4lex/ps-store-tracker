@@ -64,7 +64,7 @@ if not st.session_state['authenticated']:
     with col1:
         st.subheader("📊 Try Demo")
         st.write("Preview the dashboard with sample data - no setup required!")
-        if st.button("View Demo", use_container_width=True, type="primary"):
+        if st.button("View Demo", width="stretch", type="primary"):
             st.session_state['authenticated'] = True
             st.session_state['demo_mode'] = True
             st.rerun()
@@ -80,7 +80,7 @@ if not st.session_state['authenticated']:
         )
         username_input = st.text_input("Email")
         password_input = st.text_input("App Password", type="password")
-        if st.button("Login", use_container_width=True):
+        if st.button("Login", width="stretch"):
             if username_input and password_input:
                 st.session_state['authenticated'] = True
                 st.session_state['email'] = username_input
@@ -100,34 +100,28 @@ else:
     # Auto-fetch emails once per session (skip in demo mode)
     if 'fetched' not in st.session_state and not st.session_state['demo_mode']:
         try:
-            # Connect to Gmail
-            mail = connect_gmail(st.session_state['email'], st.session_state['password'])
-            
-            # Fetch all emails
-            emails = fetch_emails(mail)
-            total_emails = len(emails)
-            new_count = 0
-
-            progress_text = "Fetching and parsing PlayStation receipts..."
-            progress_bar = st.progress(0, text=progress_text)
-
-            for idx, email_msg in enumerate(emails, start=1):
-                if idx > 2:
-                    break
-                print(f"Parsing {idx} of {total_emails} receipts...")
-                content = get_email_body(email_msg)
-                purchase = parse(content)
-                if purchase:
-                    print(f"Storing {idx}")
-                    store_purchase(purchase)
-                    new_count += 1
+            with st.spinner("🔄 Crunching your numbers... Fetching and parsing PlayStation receipts..."):
+                # Connect to Gmail
+                mail = connect_gmail(st.session_state['email'], st.session_state['password'])
                 
-                # Update progress bar
-                progress_bar.progress(idx / total_emails, text=f"{progress_text} ({idx}/{total_emails})")
+                # Fetch all emails
+                emails = fetch_emails(mail)
+                total_emails = len(emails)
+                new_count = 0
 
-            progress_bar.empty()  # clear bar once done
+                for idx, email_msg in enumerate(emails, start=1):
+                    if idx > 2:
+                        break
+                    print(f"Parsing {idx} of {total_emails} receipts...")
+                    content = get_email_body(email_msg)
+                    purchase = parse(content)
+                    if purchase:
+                        print(f"Storing {idx}")
+                        store_purchase(purchase)
+                        new_count += 1
+
             st.session_state['fetched'] = True
-            st.success(f"Fetched {new_count} new purchases!")
+            st.success(f"✅ Fetched {new_count} new purchases!")
 
         except Exception as e:
             st.error(f"Failed to fetch emails: {e}")
@@ -144,6 +138,51 @@ else:
     if df.empty:
         st.warning("No purchases found. Click refresh or add some data first.")
     else:
+        # Raw Data Table & Stats in side-by-side columns (at the top)
+        col_table, col_stats = st.columns(2)
+
+        with col_table:
+            with st.expander("📊 Raw Data Table", expanded=False):
+                st.dataframe(
+                    df[['item_name', 'date', 'item_price']].rename(
+                        columns={'item_name': 'Game', 'date': 'Date', 'item_price': 'Price (€)'}
+                    ),
+                    width="stretch",
+                    hide_index=True
+                )
+
+        with col_stats:
+            with st.expander("🎮 Purchase Statistics", expanded=False):
+                # Sort by date for first/latest
+                df_sorted = df.copy()
+                df_sorted['date'] = pd.to_datetime(df_sorted['date'], dayfirst=True, errors='coerce')
+                df_sorted = df_sorted.dropna(subset=['date'])
+                df_sorted = df_sorted.sort_values('date')
+
+                # Most Expensive
+                st.subheader("💰 Most Expensive Purchase")
+                most_exp = df.nlargest(1, 'item_price').iloc[0]
+                st.write(f"**{most_exp['item_name']}**")
+                st.write(f"€{most_exp['item_price']:.2f}")
+
+                # Cheapest Purchase
+                st.subheader("💳 Cheapest Purchase")
+                cheapest = df.nsmallest(1, 'item_price').iloc[0]
+                st.write(f"**{cheapest['item_name']}**")
+                st.write(f"€{cheapest['item_price']:.2f}")
+
+                # First Purchase
+                st.subheader("🚀 First Purchase")
+                first = df_sorted.iloc[0]
+                st.write(f"**{first['item_name']}**")
+                st.write(f"€{first['item_price']:.2f} ({first['date'].strftime('%d/%m/%Y')})")
+
+                # Latest Purchase
+                st.subheader("⏰ Latest Purchase")
+                latest = df_sorted.iloc[-1]
+                st.write(f"**{latest['item_name']}**")
+                st.write(f"€{latest['item_price']:.2f} ({latest['date'].strftime('%d/%m/%Y')})")
+
         st.header("Summary")
         
         avg_per_purchase, avg_monthly, avg_yearly = compute_kpis(df)

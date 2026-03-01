@@ -32,7 +32,7 @@ A Python tool to automatically fetch your PlayStation Store receipts, store purc
 1. **Clone the repo**
 
 ```bash
-git clone <repo_url>
+git clone https://github.com/Gonz4lex/ps_store_tracker.git
 cd ps_store_tracker
 ```
 
@@ -58,18 +58,27 @@ Open http://localhost:8501 and log in with your email and app password. Credenti
 ```
 ps_store_tracker/
 ├── README.md
-├── pyproject.toml
-├── uv.lock
-├── data/                  # SQLite DB
-├── scripts/               
-├── src/ps_store_tracker/  
-│   ├── app.py             # Streamlit app
-│   ├── email.py           # Email fetching
-│   ├── parser.py          # Receipt parsing
-│   ├── storage.py         # SQLite storage
-│   ├── analytics.py       # Spending analysis
-│   └── config.py          
-└── tests/
+├── LICENSE                # MIT License
+├── CONTRIBUTING.md        # Contribution guidelines
+├── CODE_OF_CONDUCT.md     # Community standards
+├── SECURITY.md            # Security policy
+├── CHANGELOG.md           # Version history
+├── pyproject.toml         # Project configuration
+├── uv.lock                # Dependency lock file
+├── Dockerfile             # Container build
+├── docker-compose.yml     # Multi-container setup
+├── .env.example           # Environment template
+├── data/                  # SQLite database (gitignored)
+├── scripts/
+│   └── fetch_and_store.py # CLI script to fetch emails
+└── src/ps_store_tracker/
+    ├── app.py             # Streamlit dashboard app
+    ├── fetch_email.py     # Gmail IMAP connection
+    ├── parser.py          # Email receipt parsing
+    ├── storage.py         # SQLite database operations
+    ├── analytics.py       # Spending analytics
+    ├── config.py          # Configuration & environment
+    └── __init__.py
 ```
 
 ### Dependencies

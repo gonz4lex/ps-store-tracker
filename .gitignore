@@ -1,0 +1,51 @@
+# Byte-compiled
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environment files
+.env
+.venv/
+venv/
+env/
+*.env
+
+# Data files
+data/
+*.db
+*.sqlite
+*.sqlite3
+
+# Logs
+*.log
+
+# Editor and IDE files
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Python builds
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# VSCode specific
+*.code-workspace
+.vscode/
+
+# Temporary files
+*.tmp
+*.bak
+*.swp
+
+# Streamlit cache
+.streamlit/
+
+# Pytest cache
+.pytest_cache/

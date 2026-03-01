@@ -1,0 +1,27 @@
+[project]
+name = "ps_store_tracker"
+version = "0.1.0"
+description = "A tool to track PlayStation Store purchases, analyze spending, and visualize it in a dashboard."
+authors = [
+    { name = "Alex Gonzalez", email = "hello@alexgonzalezc.dev" }
+]
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+keywords = ["playstation", "dashboard", "analytics", "email", "streamlit"]
+dependencies = [
+    "beautifulsoup4>=4.13.5",
+    "imaplib2>=3.6",
+    "lxml>=6.0.1",
+    "pandas>=2.3.2",
+    "plotly>=6.3.0",
+    "pytest>=8.4.2",
+    "python-dotenv>=1.1.1",
+    "streamlit>=1.49.1",
+]
+
+[project.urls]
+homepage = "https://github.com/Gonz4lex/ps_store_tracker"
+repository = "https://github.com/Gonz4lex/ps_store_tracker"
+documentation = "https://github.com/Gonz4lex/ps_store_tracker#readme"
+

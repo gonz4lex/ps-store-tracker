@@ -12,3 +12,20 @@ services:
       STREAMLIT_SERVER_PORT: 8501
       STREAMLIT_SERVER_HEADLESS: "true"
       STREAMLIT_SERVER_ENABLECORS: "false"
+
+  # Demo service: run without any setup required
+  ps_store_tracker_demo:
+    build: .
+    container_name: ps_store_tracker_demo
+    ports:
+      - "8502:8501"
+    volumes:
+      - ./data_demo:/app/data
+    environment:
+      STREAMLIT_SERVER_PORT: 8501
+      STREAMLIT_SERVER_HEADLESS: "true"
+      STREAMLIT_SERVER_ENABLECORS: "false"
+      DEMO: "true"
+    command: >
+      sh -c "uv run python scripts/generate_demo_data.py && 
+             uv run streamlit run src/ps_store_tracker/app.py"

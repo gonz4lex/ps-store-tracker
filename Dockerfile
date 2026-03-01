@@ -11,13 +11,14 @@ RUN apt-get update && \
     && rm -rf /var/lib/apt/lists/* && \
     useradd -m -u 1000 appuser
 
+# Copy uv binary from official image
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
+
 # Copy dependency files for better cache efficiency
 COPY pyproject.toml uv.lock ./
 
-# Install pip dependencies
-RUN pip install --upgrade pip --no-cache-dir && \
-    pip install --no-cache-dir uv && \
-    uv install
+# Install dependencies
+RUN uv sync --frozen --no-dev
 
 # Copy application code
 COPY --chown=appuser:appuser src/ ./src/
@@ -33,12 +34,8 @@ ENV STREAMLIT_SERVER_PORT=8501 \
     STREAMLIT_SERVER_ENABLECORS=false \
     PYTHONUNBUFFERED=1
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD ["python", "-c", "import requests; requests.get('http://localhost:8501') "]
-
 # Expose Streamlit port
 EXPOSE 8501
 
 # Command to run Streamlit app
-CMD ["streamlit", "run", "src/ps_store_tracker/app.py"]
+CMD ["uv", "run", "streamlit", "run", "src/ps_store_tracker/app.py"]

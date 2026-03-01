@@ -19,7 +19,12 @@ def init_db() -> None:
     Creates two tables if they don't exist:
     - purchases: Order metadata (order_number, date, total, payment_method)
     - items: Individual items per order (linked via order_number)
+    
+    Also ensures the data directory exists.
     """
+    # Ensure data directory exists
+    DB_PATH.parent.mkdir(parents=True, exist_ok=True)
+    
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     c.execute("""

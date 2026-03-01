@@ -22,17 +22,55 @@ A Python tool to automatically fetch your PlayStation Store receipts, store purc
 
 ## Quick Start (Demo)
 
-Try the dashboard instantly with sample data - **no setup required**!
+Try the dashboard instantly with sample data - **no credentials required**!
+
+### Using `uv` (recommended)
 
 ```bash
-# Install dependencies (one time)
+# Clone the repo
+git clone https://github.com/Gonz4lex/ps_store_tracker.git
+cd ps_store_tracker
+
+# Create virtual environment
+uv venv
+
+# Activate (Linux/Mac)
+source .venv/bin/activate
+
+# Activate (Windows)
+.venv\Scripts\activate
+
+# Install dependencies
+uv pip install -e .
+
+# Run the demo
+python demo.py
+```
+
+### Using `pip`
+
+```bash
+# Clone the repo
+git clone https://github.com/Gonz4lex/ps_store_tracker.git
+cd ps_store_tracker
+
+# Create virtual environment
+python -m venv .venv
+
+# Activate (Linux/Mac)
+source .venv/bin/activate
+
+# Activate (Windows)
+.venv\Scripts\activate
+
+# Install dependencies
 pip install -e .
 
 # Run the demo
 python demo.py
 ```
 
-Then click "View Demo" when the dashboard opens. Perfect for screenshots and testing!
+Then click **"View Demo"** when the dashboard opens. Perfect for screenshots and testing!
 
 **Docker:**
 ```bash
@@ -44,11 +82,25 @@ Open http://localhost:8502
 
 ## Setup (Real Data)
 
-1. **Clone the repo**
+1. **Clone and set up environment**
 
 ```bash
 git clone https://github.com/Gonz4lex/ps_store_tracker.git
 cd ps_store_tracker
+
+# Using uv (recommended)
+uv venv
+source .venv/bin/activate  # Linux/Mac
+# or
+.venv\Scripts\activate  # Windows
+uv pip install -e .
+
+# Using pip (standard Python)
+python -m venv .venv
+source .venv/bin/activate  # Linux/Mac
+# or
+.venv\Scripts\activate  # Windows
+pip install -e .
 ```
 
 2. **Configure Gmail**
@@ -67,7 +119,6 @@ cp .env.example .env
 3. **Run the app**
 
 ```bash
-pip install -e .
 streamlit run src/ps_store_tracker/app.py
 ```
 

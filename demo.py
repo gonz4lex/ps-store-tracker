@@ -33,7 +33,7 @@ try:
     
     # Check if data already exists
     init_db()
-    df = load_purchases()
+    df = load_purchases(source="demo")
     
     if df.empty or len(df) < 20:
         print("   Creating 25 sample PlayStation purchases...")

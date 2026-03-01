@@ -12,28 +12,28 @@ def monthly_spending(df: pd.DataFrame) -> pd.Series:
     """Calculate total spending per month.
     
     Args:
-        df: DataFrame with 'date' and 'item_price' columns.
+        df: DataFrame with 'date' and 'total' columns (from load_orders).
         
     Returns:
         Series with month periods as index and total spending as values.
     """
     df = df.copy()
     df['date'] = pd.to_datetime(df['date'], dayfirst=True, errors='coerce')
-    return df.groupby(df['date'].dt.to_period('M'))['item_price'].sum()
+    return df.groupby(df['date'].dt.to_period('M'))['total'].sum()
 
 
 def yearly_spending(df: pd.DataFrame) -> pd.Series:
     """Calculate total spending per year.
     
     Args:
-        df: DataFrame with 'date' and 'item_price' columns.
+        df: DataFrame with 'date' and 'total' columns (from load_orders).
         
     Returns:
         Series with years as index and total spending as values.
     """
     df = df.copy()
     df['date'] = pd.to_datetime(df['date'], dayfirst=True, errors='coerce')
-    return df.groupby(df['date'].dt.year)['item_price'].sum()
+    return df.groupby(df['date'].dt.year)['total'].sum()
 
 
 def average_spend(df: pd.DataFrame) -> float:
@@ -65,7 +65,7 @@ def cumulative_spending(df: pd.DataFrame, rolling_window: int = 3) -> pd.DataFra
     """Calculate cumulative spending with optional rolling average smoothing.
     
     Args:
-        df: DataFrame with 'date' and 'item_price' columns.
+        df: DataFrame with 'date' and 'total' columns (from load_orders).
         rolling_window: Window size for rolling average smoothing. Default is 3.
         
     Returns:
@@ -73,10 +73,10 @@ def cumulative_spending(df: pd.DataFrame, rolling_window: int = 3) -> pd.DataFra
     """
     df = df.copy()
     df['date'] = pd.to_datetime(df['date'], dayfirst=True, errors='coerce')
-    df['item_price'] = pd.to_numeric(df['item_price'], errors='coerce')
-    df = df.dropna(subset=['date', 'item_price'])
+    df['total'] = pd.to_numeric(df['total'], errors='coerce')
+    df = df.dropna(subset=['date', 'total'])
     df = df.sort_values('date')
-    df['cumulative'] = df['item_price'].cumsum()
+    df['cumulative'] = df['total'].cumsum()
     df['cumulative_smooth'] = df['cumulative'].rolling(rolling_window, min_periods=1).mean()
     return df
 
@@ -85,15 +85,15 @@ def compute_kpis(df: pd.DataFrame) -> Tuple[float, float, float]:
     """Compute key performance indicators for spending analysis.
     
     Args:
-        df: DataFrame with 'date' and 'item_price' columns.
+        df: DataFrame with 'date' and 'total' columns (from load_orders).
         
     Returns:
         Tuple of (avg_per_purchase, avg_monthly, avg_yearly).
     """
     df = df.copy()
     df['date'] = pd.to_datetime(df['date'], dayfirst=True, errors='coerce')
-    df = df.dropna(subset=['date', 'item_price'])
-    total_spent = df['item_price'].sum()
+    df = df.dropna(subset=['date', 'total'])
+    total_spent = df['total'].sum()
     total_purchases = len(df)
     avg_per_purchase = total_spent / total_purchases if total_purchases else 0
 

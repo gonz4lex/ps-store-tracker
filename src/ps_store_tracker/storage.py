@@ -17,7 +17,7 @@ def init_db() -> None:
     """Initialize the SQLite database with required tables.
     
     Creates two tables if they don't exist:
-    - purchases: Order metadata (order_number, date, total, payment_method)
+    - purchases: Order metadata (order_number, date, total, source, payment_method)
     - items: Individual items per order (linked via order_number)
     
     Also ensures the data directory exists.
@@ -32,6 +32,7 @@ def init_db() -> None:
         order_number TEXT PRIMARY KEY,
         date TEXT,
         total REAL,
+        source TEXT DEFAULT 'real',
         payment_method TEXT
     )
     """)
@@ -49,7 +50,7 @@ def init_db() -> None:
     conn.close()
 
 
-def store_purchase(purchase: Dict[str, Any]) -> None:
+def store_purchase(purchase: Dict[str, Any], source: str = "real") -> None:
     """Store a purchase and its items in the database.
     
     Args:
@@ -58,15 +59,16 @@ def store_purchase(purchase: Dict[str, Any]) -> None:
             - date: Purchase date
             - total: Total purchase amount
             - items: List of dicts with 'name' and 'price'
+        source: Data source - 'demo' or 'real' (default: 'real')
     """
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     
     # Store purchase
     c.execute("""
-        INSERT OR IGNORE INTO purchases(order_number, date, total)
-        VALUES (?, ?, ?)
-    """, (purchase["order_number"], purchase["date"], purchase["total"]))
+        INSERT OR IGNORE INTO purchases(order_number, date, total, source)
+        VALUES (?, ?, ?, ?)
+    """, (purchase["order_number"], purchase["date"], purchase["total"], source))
     
     # Store items (avoid duplicates)
     for item in purchase["items"]:
@@ -79,32 +81,62 @@ def store_purchase(purchase: Dict[str, Any]) -> None:
     conn.close()
 
 
-def load_purchases() -> pd.DataFrame:
-    """Load all purchases from the database into a pandas DataFrame.
+def load_purchases(source: str = "real") -> pd.DataFrame:
+    """Load all unique items purchased from the database into a pandas DataFrame.
+    
+    Args:
+        source: Data source to load - 'demo' or 'real' (default: 'real')
     
     Returns:
-        DataFrame with columns: order_number, date, price, payment_method,
-        item_name, item_price. Empty DataFrame if no data exists.
+        DataFrame with columns: item_name, date, item_price (one row per unique item).
+        Empty DataFrame if no data exists.
     """
     query = """
-    SELECT 
-        p.order_number,
-        p.date,
-        p.total AS price,
-        p.payment_method,
+    SELECT DISTINCT
         i.name AS item_name,
+        p.date,
         i.price AS item_price
-    FROM purchases p
-    LEFT JOIN items i ON p.order_number = i.order_number
+    FROM items i
+    JOIN purchases p ON i.order_number = p.order_number
+    WHERE p.source = ?
     ORDER BY p.date ASC
     """
     
     with sqlite3.connect(DB_PATH) as conn:
-        df = pd.read_sql(query, conn)
+        df = pd.read_sql(query, conn, params=(source,))
     
     if not df.empty:
         df['date'] = pd.to_datetime(df['date'], dayfirst=True)
-        df['price'] = df['price'].astype(float)
         df['item_price'] = df['item_price'].astype(float)
+    
+    return df
+
+
+def load_orders(source: str = "real") -> pd.DataFrame:
+    """Load all orders from the database into a pandas DataFrame.
+    
+    Args:
+        source: Data source to load - 'demo' or 'real' (default: 'real')
+    
+    Returns:
+        DataFrame with columns: order_number, date, total (order total).
+        Empty DataFrame if no data exists.
+    """
+    query = """
+    SELECT 
+        order_number,
+        date,
+        total
+    FROM purchases
+    WHERE source = ?
+    ORDER BY date ASC
+    """
+    
+    with sqlite3.connect(DB_PATH) as conn:
+        df = pd.read_sql(query, conn, params=(source,))
+    
+    if not df.empty:
+        df['date'] = pd.to_datetime(df['date'], dayfirst=True)
+        df['total'] = df['total'].astype(float)
     
     return df

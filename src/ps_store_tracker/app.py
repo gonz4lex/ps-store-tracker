@@ -13,7 +13,7 @@ sys.path.append(str(Path(__file__).resolve().parents[1]))
 
 import streamlit as st
 import pandas as pd
-from ps_store_tracker.storage import init_db, store_purchase, load_purchases
+from ps_store_tracker.storage import init_db, store_purchase, load_purchases, load_orders
 from ps_store_tracker.analytics import (
     monthly_spending,
     yearly_spending,
@@ -40,12 +40,9 @@ st.markdown("""
 
 html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
 
-/* Hide hamburger menu and footer */
 #MainMenu {visibility: hidden;}
 footer {visibility: hidden;}
 
-/* Make sidebar feel cleaner */
-section[data-testid="stSidebar"] { background-color: #0d1526; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -99,32 +96,42 @@ else:
 
     # Auto-fetch emails once per session (skip in demo mode)
     if 'fetched' not in st.session_state and not st.session_state['demo_mode']:
-        try:
-            with st.spinner("🔄 Crunching your numbers... Fetching and parsing PlayStation receipts..."):
-                # Connect to Gmail
-                mail = connect_gmail(st.session_state['email'], st.session_state['password'])
+        # Create centered spinner message
+        col1, col2, col3 = st.columns([1, 1, 1])
+        with col2:
+            with st.spinner(""):
+                st.markdown("""
+                <div style="text-align: center; padding: 60px 20px;">
+                    <h2 style="font-size: 2.5em; margin-bottom: 30px;">🔄</h2>
+                    <h1 style="font-size: 2em; color: #1f77b4; margin-bottom: 20px;">Crunching your numbers...</h1>
+                    <p style="font-size: 1.1em; color: #666;">Fetching and parsing PlayStation receipts...</p>
+                </div>
+                """, unsafe_allow_html=True)
                 
-                # Fetch all emails
-                emails = fetch_emails(mail)
-                total_emails = len(emails)
-                new_count = 0
+                try:
+                    # Connect to Gmail
+                    mail = connect_gmail(st.session_state['email'], st.session_state['password'])
+                    
+                    # Fetch all emails
+                    emails = fetch_emails(mail)
+                    total_emails = len(emails)
+                    new_count = 0
 
-                for idx, email_msg in enumerate(emails, start=1):
-                    if idx > 2:
-                        break
-                    print(f"Parsing {idx} of {total_emails} receipts...")
-                    content = get_email_body(email_msg)
-                    purchase = parse(content)
-                    if purchase:
-                        print(f"Storing {idx}")
-                        store_purchase(purchase)
-                        new_count += 1
+                    for idx, email_msg in enumerate(emails, start=1):
+                        content = get_email_body(email_msg)
+                        purchase = parse(content)
+                        if purchase:
+                            store_purchase(purchase, source="real")
+                            new_count += 1
 
-            st.session_state['fetched'] = True
-            st.success(f"✅ Fetched {new_count} new purchases!")
+                    st.session_state['fetched'] = True
+                    st.success(f"✅ Fetched {new_count} new purchases!")
+                    st.rerun()
 
-        except Exception as e:
-            st.error(f"Failed to fetch emails: {e}")
+                except Exception as e:
+                    st.session_state['fetched'] = True
+                    st.error(f"Failed to fetch emails: {e}")
+                    st.rerun()
     
     # Mark as fetched in demo mode
     if st.session_state['demo_mode']:
@@ -133,9 +140,12 @@ else:
             st.info("📊 **Demo Mode** - Viewing sample PlayStation Store purchase data")
             st.session_state['first_demo_load'] = False
 
-    # Load purchases from DB
-    df = load_purchases()
-    if df.empty:
+    # Load purchases and orders from DB (use demo or real data based on mode)
+    data_source = "demo" if st.session_state['demo_mode'] else "real"
+    df_items = load_purchases(source=data_source)  # For raw data table (unique items)
+    df_orders = load_orders(source=data_source)    # For analytics (spending calculations)
+    
+    if df_items.empty or df_orders.empty:
         st.warning("No purchases found. Click refresh or add some data first.")
     else:
         # Raw Data Table & Stats in side-by-side columns (at the top)
@@ -144,7 +154,7 @@ else:
         with col_table:
             with st.expander("📊 Raw Data Table", expanded=False):
                 st.dataframe(
-                    df[['item_name', 'date', 'item_price']].rename(
+                    df_items[['item_name', 'date', 'item_price']].rename(
                         columns={'item_name': 'Game', 'date': 'Date', 'item_price': 'Price (€)'}
                     ),
                     width="stretch",
@@ -153,21 +163,21 @@ else:
 
         with col_stats:
             with st.expander("🎮 Purchase Statistics", expanded=False):
-                # Sort by date for first/latest
-                df_sorted = df.copy()
+                # Sort items by date for first/latest
+                df_sorted = df_items.copy()
                 df_sorted['date'] = pd.to_datetime(df_sorted['date'], dayfirst=True, errors='coerce')
                 df_sorted = df_sorted.dropna(subset=['date'])
                 df_sorted = df_sorted.sort_values('date')
 
-                # Most Expensive
+                # Most Expensive Item
                 st.subheader("💰 Most Expensive Purchase")
-                most_exp = df.nlargest(1, 'item_price').iloc[0]
+                most_exp = df_items.nlargest(1, 'item_price').iloc[0]
                 st.write(f"**{most_exp['item_name']}**")
                 st.write(f"€{most_exp['item_price']:.2f}")
 
-                # Cheapest Purchase
+                # Cheapest Item
                 st.subheader("💳 Cheapest Purchase")
-                cheapest = df.nsmallest(1, 'item_price').iloc[0]
+                cheapest = df_items[df_items['item_price'] > 0].nsmallest(1, 'item_price').iloc[0]
                 st.write(f"**{cheapest['item_name']}**")
                 st.write(f"€{cheapest['item_price']:.2f}")
 
@@ -185,7 +195,7 @@ else:
 
         st.header("Summary")
         
-        avg_per_purchase, avg_monthly, avg_yearly = compute_kpis(df)
+        avg_per_purchase, avg_monthly, avg_yearly = compute_kpis(df_orders)
 
         c1, c2, c3 = st.columns(3)
         with c1:
@@ -199,24 +209,24 @@ else:
 
         with c4:
             st.header("Monthly Spending")
-            month_df = monthly_spending(df).reset_index()
+            month_df = monthly_spending(df_orders).reset_index()
             month_df['date'] = month_df['date'].dt.to_timestamp()
             st.bar_chart(
-                month_df.rename(columns={'date':'Month', 'price':'Total'}).set_index('Month')
+                month_df.rename(columns={'date':'Month', 'total':'Total'}).set_index('Month')
             )
 
         with c5:
             st.header("Yearly Spending")
-            year_df = yearly_spending(df).reset_index()
+            year_df = yearly_spending(df_orders).reset_index()
             st.bar_chart(
-                year_df.rename(columns={'date':'Year', 'price':'Total'}).set_index('Year')
+                year_df.rename(columns={'date':'Year', 'total':'Total'}).set_index('Year')
             )
 
         # st.header("Most Expensive Games")
-        # st.dataframe(most_expensive_games(df))
+        # st.dataframe(most_expensive_games(df_items))
 
         st.header("Cumulative Spending Over Time")
-        cum_df = cumulative_spending(df)
+        cum_df = cumulative_spending(df_orders)
 
         # Ensure 'date' is datetime
         cum_df['date'] = pd.to_datetime(cum_df['date'], dayfirst=True, errors='coerce')

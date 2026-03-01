@@ -63,27 +63,29 @@ def generate_demo_purchases(num_purchases: int = 25) -> None:
     
     print(f"Generating {num_purchases} sample purchases...")
     
+    # Combine all item pools and shuffle to avoid duplicates
+    all_items = [(name, price_range) for name, price_range in [
+        *[(game, (29.99, 79.99)) for game in SAMPLE_GAMES],
+        *[(pass_name, (9.99, 19.99)) for pass_name in SEASON_PASSES],
+        *[(dlc, (4.99, 24.99)) for dlc in DLC_CONTENT],
+    ]]
+    
+    # Shuffle and limit to num_purchases to avoid duplicates
+    random.shuffle(all_items)
+    selected_items = all_items[:min(num_purchases, len(all_items))]
+    
     # Generate dates spread over the last 2 years
     end_date = datetime.now()
     start_date = end_date - timedelta(days=730)
     
-    for i in range(1, num_purchases + 1):
+    for i, (item_name, price_range) in enumerate(selected_items, start=1):
         # Random date within the range
         random_days = random.randint(0, 730)
         purchase_date = start_date + timedelta(days=random_days)
         date_str = purchase_date.strftime("%d/%m/%Y")
         
-        # 70% chance of game purchase, 20% season pass, 10% DLC
-        random_type = random.random()
-        if random_type < 0.70:
-            item_name = random.choice(SAMPLE_GAMES)
-            price = round(random.uniform(29.99, 79.99), 2)
-        elif random_type < 0.90:
-            item_name = random.choice(SEASON_PASSES)
-            price = round(random.uniform(9.99, 19.99), 2)
-        else:
-            item_name = random.choice(DLC_CONTENT)
-            price = round(random.uniform(4.99, 24.99), 2)
+        # Random price within the range for this item type
+        price = round(random.uniform(price_range[0], price_range[1]), 2)
         
         # Create purchase record
         purchase = {
@@ -95,10 +97,10 @@ def generate_demo_purchases(num_purchases: int = 25) -> None:
             ]
         }
         
-        store_purchase(purchase)
+        store_purchase(purchase, source="demo")
         print(f"  ✓ {purchase['order_number']}: {item_name} - €{price:.2f} ({date_str})")
     
-    print(f"\n✅ Successfully generated {num_purchases} demo purchases!")
+    print(f"\n✅ Successfully generated {len(selected_items)} demo purchases!")
     print("Run the app with DEMO=true to use this data.")
 
 
